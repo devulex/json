@@ -1,0 +1,19 @@
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# IDEA settings
+.idea/*
+*.iml
+
+# Gradle
+.gradle
+gradle
+gradlew
+gradlew.bat
+
+# Build dir
+build
+out
