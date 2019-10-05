@@ -28,7 +28,7 @@ public class JsonTest {
     private static ObjectMapper mapper = new ObjectMapper();
 
     @Test
-    public void jsonBooleanTest() {
+    public void formatBooleanTest() {
         Entity object = new Entity();
         object.setObjectBoolean(true);
         object.setPrimitiveBoolean(false);
@@ -36,8 +36,16 @@ public class JsonTest {
     }
 
     @Test
-    public void jsonAllFieldsTest() throws JsonProcessingException {
+    public void formatAllFieldsTest() throws JsonProcessingException {
         Entity object = createTestJsonEntity();
+        System.out.println("The JSON:     " + Json.format(object));
+        System.out.println("Gson JSON:    " + new Gson().toJson(object));
+        System.out.println("Jackson JSON: " + mapper.writeValueAsString(object));
+    }
+
+    @Test
+    public void formatListTest() throws JsonProcessingException {
+        Object object = Stream.of("One", "Two", "Three").collect(Collectors.toList());
         System.out.println("The JSON:     " + Json.format(object));
         System.out.println("Gson JSON:    " + new Gson().toJson(object));
         System.out.println("Jackson JSON: " + mapper.writeValueAsString(object));

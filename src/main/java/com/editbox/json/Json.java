@@ -17,7 +17,7 @@ import java.util.Map;
  *
  * @author Aleksandr Uhanov
  * @version 1.0.0
- * @since 2019-09-28
+ * @since 2019-10-05
  */
 public class Json {
 
@@ -27,9 +27,14 @@ public class Json {
         if (source == null) {
             return null;
         }
+        StringBuilder builder = new StringBuilder(512);
+        format0(source, builder);
+        return builder.toString();
+    }
+
+    private static void format0(Object source, StringBuilder builder) {
         Class type = source.getClass();
         String typeName = type.getName();
-        StringBuilder builder = new StringBuilder(512);
         switch (typeName) {
             case "boolean":
             case "java.lang.Boolean":
@@ -48,37 +53,76 @@ public class Json {
             case "java.math.BigInteger":
             case "java.math.BigDecimal":
                 builder.append(source);
-                break;
+                return;
             case "java.lang.String":
                 builder.append("\"").append(escapeString(source.toString())).append("\"");
-                break;
+                return;
             case "java.util.UUID":
                 builder.append("\"").append(source.toString()).append("\"");
-                break;
+                return;
             case "java.util.Date":
                 builder.append(((Date) source).getTime());
-                break;
+                return;
             case "java.time.LocalDate":
                 builder.append("\"").append(((LocalDate) source).format(DateTimeFormatter.ISO_DATE)).append("\"");
-                break;
+                return;
             case "java.time.LocalTime":
                 builder.append("\"").append(((LocalTime) source).format(DateTimeFormatter.ISO_TIME)).append("\"");
-                break;
+                return;
             case "java.time.LocalDateTime":
                 builder.append("\"").append(((LocalDateTime) source).format(DateTimeFormatter.ISO_DATE_TIME)).append("\"");
-                break;
+                return;
             case "java.time.ZonedDateTime":
                 builder.append("\"").append(((ZonedDateTime) source).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)).append("\"");
-                break;
-            default:
-                builder.append(formatNested(source));
-                break;
+                return;
         }
-        return builder.toString();
+        if (typeName.startsWith("[") || source instanceof Collection) {
+            formatList(source, typeName, builder);
+            return;
+        }
+        if (source instanceof Map) {
+            formatMap(source, builder);
+            return;
+        }
+        formatFields(source, builder);
     }
 
-    private static String formatNested(Object source) {
-        StringBuilder builder = new StringBuilder();
+    private static void formatList(Object source, String typeName, StringBuilder builder) {
+        builder.append("[");
+        if (typeName.startsWith("[")) {
+            for (Object item : unpack(source)) {
+                format0(item, builder);
+                builder.append(FIELD_SEPARATOR);
+            }
+        } else {
+            for (Object item : (Collection) source) {
+                format0(item, builder);
+                builder.append(FIELD_SEPARATOR);
+            }
+        }
+        if (builder.charAt(builder.length() - 1) == FIELD_SEPARATOR) {
+            builder.setCharAt(builder.length() - 1, ']');
+        } else {
+            builder.append("]");
+        }
+    }
+
+    private static void formatMap(Object source, StringBuilder builder) {
+        builder.append("{");
+        for (Object object : ((Map) source).entrySet()) {
+            Map.Entry entry = (Map.Entry) object;
+            builder.append("\"").append(entry.getKey()).append("\"").append(":");
+            format0(entry.getValue(), builder);
+            builder.append(FIELD_SEPARATOR);
+        }
+        if (builder.charAt(builder.length() - 1) == FIELD_SEPARATOR) {
+            builder.setCharAt(builder.length() - 1, '}');
+        } else {
+            builder.append("}");
+        }
+    }
+
+    private static void formatFields(Object source, StringBuilder builder) {
         try {
             builder.append("{");
             Class clazz = source.getClass();
@@ -105,42 +149,7 @@ public class Json {
                 if (fieldValue == null) {
                     builder.append("null");
                 } else {
-                    Class type = field.getType();
-                    String typeName = type.getName();
-                    if (typeName.startsWith("[") || fieldValue instanceof Collection) {
-                        builder.append("[");
-                        if (typeName.startsWith("[")) {
-                            for (Object item : unpack(fieldValue)) {
-                                builder.append(format(item));
-                                builder.append(FIELD_SEPARATOR);
-                            }
-                        } else {
-                            for (Object item : (Collection) fieldValue) {
-                                builder.append(format(item));
-                                builder.append(FIELD_SEPARATOR);
-                            }
-                        }
-                        if (builder.charAt(builder.length() - 1) == FIELD_SEPARATOR) {
-                            builder.setCharAt(builder.length() - 1, ']');
-                        } else {
-                            builder.append("]");
-                        }
-                    } else if (fieldValue instanceof Map) {
-                        builder.append("{");
-                        for (Object object : ((Map) fieldValue).entrySet()) {
-                            Map.Entry entry = (Map.Entry) object;
-                            builder.append("\"").append(entry.getKey()).append("\"").append(":");
-                            builder.append(format(entry.getValue()));
-                            builder.append(FIELD_SEPARATOR);
-                        }
-                        if (builder.charAt(builder.length() - 1) == FIELD_SEPARATOR) {
-                            builder.setCharAt(builder.length() - 1, '}');
-                        } else {
-                            builder.append("}");
-                        }
-                    } else {
-                        builder.append(format(fieldValue));
-                    }
+                    format0(fieldValue, builder);
                 }
                 builder.append(FIELD_SEPARATOR);
             }
@@ -152,7 +161,6 @@ public class Json {
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
-        return builder.toString();
     }
 
     public static <T> T parse(String json, Class<T> classOfType) {
