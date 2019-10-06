@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * tests for Java serialization/deserialization class.
@@ -72,6 +73,21 @@ public class JsonTest {
             gson.toJson(object);
         }
         System.out.println("Serialization duration " + (System.nanoTime() - start) / 1000_000d + "ms");
+    }
+
+    @Test
+    public void parseBooleanIntStringTest() {
+        String json = "{\"primitiveBoolean\": true, \"primitiveInt\": 123, \"objectInt\": 456, \"string\": \"Hello world!\"}";
+        Entity object = Json.parse(json, Entity.class);
+        assertTrue(object.isPrimitiveBoolean());
+        assertEquals(123, object.getPrimitiveInt());
+        assertEquals(456, (int) object.getObjectInt());
+        assertEquals("Hello world!", object.getString());
+    }
+
+    @Test
+    public void jsonToPairsTest() {
+        Json.jsonToPairs("{\"firstName\" : \"John\", \"isAlive\": true,\"age\":27, \"phones\": [[123], [456]] , \"spouse\": null}");
     }
 
     private Entity createTestJsonEntity() {

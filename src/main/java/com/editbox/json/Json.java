@@ -8,16 +8,14 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Map;
+import java.util.*;
 
 /**
  * A Java serialization/deserialization class to convert Java Objects into JSON and back.
  *
  * @author Aleksandr Uhanov
  * @version 1.0.0
- * @since 2019-10-05
+ * @since 2019-10-07
  */
 public class Json {
 
@@ -30,6 +28,20 @@ public class Json {
         StringBuilder builder = new StringBuilder(512);
         format0(source, builder);
         return builder.toString();
+    }
+
+    public static <T> T parse(String json, Class<T> valueType) {
+        if (json == null) {
+            return null;
+        }
+        if (valueType == null) {
+            throw new RuntimeException("Parameter valueType cannot be null.");
+        }
+        try {
+            return parse0(json, valueType);
+        } catch (Exception e) {
+            throw new RuntimeException("Json parse exception.", e);
+        }
     }
 
     private static void format0(Object source, StringBuilder builder) {
@@ -163,10 +175,6 @@ public class Json {
         }
     }
 
-    public static <T> T parse(String json, Class<T> classOfType) {
-        throw new UnsupportedOperationException("Parse not supported yet.");
-    }
-
     private static String escapeString(String source) {
         StringBuilder builder = new StringBuilder(source.length() + source.length() / 10);
         for (char c : source.toCharArray()) {
@@ -206,5 +214,214 @@ public class Json {
             arrayOfObjects[i] = Array.get(array, i);
         }
         return arrayOfObjects;
+    }
+
+    private static <T> T parse0(String json, Class<T> type) throws Exception {
+        json = json.trim();
+        String typeName = type.getName();
+        switch (typeName) {
+            case "boolean":
+            case "java.lang.Boolean":
+                return (T) Boolean.valueOf(json);
+            case "short":
+            case "java.lang.Short":
+                return (T) Short.valueOf(json);
+            case "int":
+            case "java.lang.Integer":
+                return (T) Integer.valueOf(json);
+            case "long":
+            case "java.lang.Long":
+                return (T) Long.valueOf(json);
+            case "float":
+            case "java.lang.Float":
+                return (T) Float.valueOf(json);
+            case "double":
+            case "java.lang.Double":
+                return (T) Double.valueOf(json);
+            case "java.lang.String":
+                return (T) json;
+        }
+        if (typeName.startsWith("[") || Collection.class.isAssignableFrom(type)) {
+            return parseList(json, type);
+        }
+        if (Map.class.isAssignableFrom(type)) {
+            return parseMap(json, type);
+        }
+        return parseFields(json, type);
+    }
+
+    private static <T> T parseList(String json, Class<T> type) {
+        return null; // TODO
+    }
+
+    private static <T> T parseMap(String json, Class<T> type) {
+        return null; // TODO
+    }
+
+    private static <T> T parseFields(String json, Class<T> type) throws Exception {
+        Map<String, String> pairs = jsonToPairs(json);
+        T object;
+        try {
+            object = type.getConstructor().newInstance();
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException("No-argument constructor of " + type.getName() + " not found.");
+        }
+        for (Field field : type.getDeclaredFields()) {
+            if (field == null) {
+                continue;
+            }
+            if (Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+            if (Modifier.isTransient(field.getModifiers())) {
+                continue;
+            }
+            field.setAccessible(true);
+            if (field.getAnnotation(JsonIgnore.class) != null) {
+                continue;
+            }
+            String fieldName = field.getName();
+            String value = pairs.get(fieldName);
+            if (value != null) {
+                field.set(object, parse0(value, field.getType()));
+            }
+        }
+        return object;
+    }
+
+    public static Map<String, String> jsonToPairs(String json) {
+        Map<String, String> map = new HashMap<>();
+        StringBuilder attribute = new StringBuilder();
+        StringBuilder value = new StringBuilder();
+        int max = json.length();
+        int pos = 0;
+        int state = 0;
+        int level = 0;
+        while (pos < max) {
+            char c = json.charAt(pos);
+            switch (state) {
+                case 0: // start quotation mark
+                    if (c == '"') {
+                        state = 1;
+                        attribute = new StringBuilder();
+                        value = new StringBuilder();
+                    }
+                    break;
+                case 1: // attribute name
+                    if (c == '\\') {
+                        break;
+                    }
+                    if (c == '"') {
+                        state = 2;
+                    } else {
+                        attribute.append(c);
+                    }
+                    break;
+                case 2: // colon
+                    if (c == ':') {
+                        state = 3;
+                    }
+                    break;
+                case 3: // start value
+                    if (c == '"') {
+                        state = 4; // start string value
+                    } else if (c >= '0' && c <= '9') {
+                        state = 5;  // start number value
+                        value.append(c);
+                    } else if (c == '[') {
+                        state = 6; // start array value
+                        level = 0;
+                        value.append(c);
+                    } else if (c == '{') {
+                        state = 7; // start object value
+                        level = 0;
+                        value.append(c);
+                    } else if (c == 't') {
+                        state = 8; // start boolean value
+                    } else if (c == 'f') {
+                        state = 9; // start boolean value
+                    } else if (c == 'n') {
+                        state = 10; // null value
+                    }
+                    break;
+                case 4: // string value
+                    if (c == '\\') {
+                        pos++;
+                        value.append(json.charAt(pos));
+                    } else if (c == '"') {
+                        state = 0;
+                        map.put(attribute.toString(), value.toString());
+                    } else {
+                        value.append(c);
+                    }
+                    break;
+                case 5: // number value
+                    if (c >= '0' && c <= '9') {
+                        value.append(c);
+                    } else {
+                        state = 0;
+                        map.put(attribute.toString(), value.toString());
+                    }
+                    break;
+                case 6: // array value
+                    value.append(c);
+                    if (c == '[') {
+                        level++;
+                    } else if (c == ']') {
+                        if (level == 0) {
+                            state = 0;
+                            map.put(attribute.toString(), value.toString());
+                        } else {
+                            level--;
+                        }
+                    }
+                    break;
+                case 7: // object value
+                    value.append(c);
+                    if (c == '{') {
+                        level++;
+                    } else if (c == '}') {
+                        if (level == 0) {
+                            state = 0;
+                            map.put(attribute.toString(), value.toString());
+                        } else {
+                            level--;
+                        }
+                    }
+                    break;
+                case 8: // true boolean value
+                    if (c == 'r' && json.charAt(pos + 1) == 'u' && json.charAt(pos + 2) == 'e') {
+                        pos += 2;
+                        state = 0;
+                        value.append("true");
+                        map.put(attribute.toString(), value.toString());
+                    } else {
+                        throw new RuntimeException("Error parsing boolean value.");
+                    }
+                    break;
+                case 9: // false boolean value
+                    if (c == 'a' && json.charAt(pos + 1) == 'l' && json.charAt(pos + 2) == 's' && json.charAt(pos + 3) == 'e') {
+                        pos += 3;
+                        state = 0;
+                        value.append("false");
+                        map.put(attribute.toString(), value.toString());
+                    } else {
+                        throw new RuntimeException("Error parsing boolean value.");
+                    }
+                    break;
+                case 10: // null value
+                    if (c == 'u' && json.charAt(pos + 1) == 'l' && json.charAt(pos + 2) == 'l') {
+                        pos += 2;
+                        state = 0;
+                        value.append("null");
+                        map.put(attribute.toString(), value.toString());
+                    } else {
+                        throw new RuntimeException("Error parsing null value.");
+                    }
+                    break;
+            }
+            pos++;
+        }
+        return map;
     }
 }
