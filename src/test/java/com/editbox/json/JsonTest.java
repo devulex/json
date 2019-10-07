@@ -22,7 +22,7 @@ import static org.junit.Assert.assertTrue;
  * tests for Java serialization/deserialization class.
  *
  * @author Aleksandr Uhanov
- * @since 2019-09-28
+ * @since 2019-10-07
  */
 public class JsonTest {
 
@@ -83,6 +83,12 @@ public class JsonTest {
         assertEquals(123, object.getPrimitiveInt());
         assertEquals(456, (int) object.getObjectInt());
         assertEquals("Hello world!", object.getString());
+    }
+
+    @Test
+    public void parseListOfStringTest() {
+        String json = "{\"primitiveBoolean\": true, \"list\": [\"Ford\", \"Audi\"]}";
+        Entity object = Json.parse(json, Entity.class);
     }
 
     @Test

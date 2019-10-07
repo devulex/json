@@ -3,6 +3,7 @@ package com.editbox.json;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.lang.reflect.ParameterizedType;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -38,7 +39,7 @@ public class Json {
             throw new RuntimeException("Parameter valueType cannot be null.");
         }
         try {
-            return parse0(json, valueType);
+            return parse0(json, valueType, null);
         } catch (Exception e) {
             throw new RuntimeException("Json parse exception.", e);
         }
@@ -216,7 +217,7 @@ public class Json {
         return arrayOfObjects;
     }
 
-    private static <T> T parse0(String json, Class<T> type) throws Exception {
+    private static <T> T parse0(String json, Class<T> type, Class<?> stringListClass) throws Exception {
         json = json.trim();
         String typeName = type.getName();
         switch (typeName) {
@@ -241,12 +242,22 @@ public class Json {
             case "java.lang.String":
                 return (T) json;
         }
-        if (typeName.startsWith("[") || Collection.class.isAssignableFrom(type)) {
-            return parseList(json, type);
+        /*if (typeName.startsWith("[")) {
+            for (String value: jsonToList(json)) {
+
+            }
+            return ;
+        }*/
+        if (Collection.class.isAssignableFrom(type)) {
+            List res = new ArrayList<>();
+            for (String value: jsonToList(json)) {
+                res.add(parse0(value, stringListClass, null));
+            }
+            return (T) res;
         }
-        if (Map.class.isAssignableFrom(type)) {
+        /*if (Map.class.isAssignableFrom(type)) {
             return parseMap(json, type);
-        }
+        }*/
         return parseFields(json, type);
     }
 
@@ -283,10 +294,167 @@ public class Json {
             String fieldName = field.getName();
             String value = pairs.get(fieldName);
             if (value != null) {
-                field.set(object, parse0(value, field.getType()));
+                Class<?> stringListClass = null;
+                if (Collection.class.isAssignableFrom(field.getType())) {
+                    ParameterizedType listTypes = (ParameterizedType) field.getGenericType();
+                    stringListClass = (Class<?>) listTypes.getActualTypeArguments()[0];
+                }
+                field.set(object, parse0(value, field.getType(), stringListClass));
             }
         }
         return object;
+    }
+
+    public static List<String> jsonToList(String json) {
+        List<String> list = new ArrayList<>();
+        StringBuilder value = new StringBuilder();
+        int max = json.length();
+        int pos = 0;
+        int state = 0;
+        int level = 0;
+        while (pos < max) {
+            char c = json.charAt(pos);
+            switch (state) {
+                case 0:
+                    if (isWhitespace(c)) {
+                        break;
+                    }
+                    if (c == '[') {
+                        state = 1;
+                        break;
+                    }
+                    throwParseException(c, pos);
+                case 1:
+                    if (isWhitespace(c)) {
+                        break;
+                    }
+                    if (c == '"') {
+                        state = 2;
+                    } else if (isDigit(c) || c == '-') {
+                        value.append(c);
+                        state = 3;
+                    } else if (c == '[') {
+                        value.append(c);
+                        level = 0;
+                        state = 4;
+                    } else if (c == '{') {
+                        value.append(c);
+                        level = 0;
+                        state = 5;
+                    } else if (c == 't') {
+                        state = 6;
+                    } else if (c == 'f') {
+                        state = 7;
+                    } else if (c == 'n') {
+                        state = 8;
+                    } else {
+                        throwParseException(c, pos);
+                    }
+                    break;
+                case 2: // string value
+                    if (c == '\\') {
+                        pos++;
+                        value.append(json.charAt(pos));
+                    } else if (c == '"') {
+                        state = 9;
+                        list.add(value.toString());
+                    } else {
+                        value.append(c);
+                    }
+                    break;
+                case 3: // number value
+                    if (isDigit(c)) {
+                        value.append(c);
+                    } else if (c == ',') {
+                        list.add(value.toString());
+                        state = 1;
+                        value = new StringBuilder();
+                    } else if (c == ']') {
+                        list.add(value.toString());
+                        state = 10;
+                    } else if (isWhitespace(c)) {
+                        list.add(value.toString());
+                        state = 9;
+                    } else {
+                        throwParseException(c, pos);
+                    }
+                    break;
+                case 4: // array value
+                    value.append(c);
+                    if (c == '[') {
+                        level++;
+                    } else if (c == ']') {
+                        if (level == 0) {
+                            list.add(value.toString());
+                            state = 9;
+                        } else {
+                            level--;
+                        }
+                    }
+                    break;
+                case 5: // object value
+                    value.append(c);
+                    if (c == '{') {
+                        level++;
+                    } else if (c == '}') {
+                        if (level == 0) {
+                            list.add(value.toString());
+                            state = 9;
+                        } else {
+                            level--;
+                        }
+                    }
+                    break;
+                case 6: // true boolean value
+                    if (c == 'r' && json.charAt(pos + 1) == 'u' && json.charAt(pos + 2) == 'e') {
+                        pos += 2;
+                        state = 9;
+                        value.append("true");
+                        list.add(value.toString());
+                        break;
+                    }
+                    throwParseException(c, pos);
+                case 7: // false boolean value
+                    if (c == 'a' && json.charAt(pos + 1) == 'l' && json.charAt(pos + 2) == 's' && json.charAt(pos + 3) == 'e') {
+                        pos += 3;
+                        state = 9;
+                        value.append("false");
+                        list.add(value.toString());
+                        break;
+                    }
+                    throwParseException(c, pos);
+                case 8: // null value
+                    if (c == 'u' && json.charAt(pos + 1) == 'l' && json.charAt(pos + 2) == 'l') {
+                        pos += 2;
+                        state = 9;
+                        value.append("null");
+                        list.add(value.toString());
+                        break;
+                    }
+                    throwParseException(c, pos);
+                case 9:
+                    if (isWhitespace(c)) {
+                        break;
+                    } else if (c == ',') {
+                        state = 1;
+                        value = new StringBuilder();
+                        break;
+                    } else if (c == ']') {
+                        state = 10;
+                        break;
+                    } else {
+                        throwParseException(c, pos);
+                    }
+                case 10:
+                    if (isWhitespace(c)) {
+                        break;
+                    } else {
+                        throwParseException(c, pos);
+                    }
+            }
+            pos++;
+        }
+        return list;
     }
 
     public static Map<String, String> jsonToPairs(String json) {
@@ -325,7 +493,7 @@ public class Json {
                 case 3: // start value
                     if (c == '"') {
                         state = 4; // start string value
-                    } else if (c >= '0' && c <= '9') {
+                    } else if (isDigit(c)) {
                         state = 5;  // start number value
                         value.append(c);
                     } else if (c == '[') {
@@ -356,7 +524,7 @@ public class Json {
                     }
                     break;
                 case 5: // number value
-                    if (c >= '0' && c <= '9') {
+                    if (isDigit(c)) {
                         value.append(c);
                     } else {
                         state = 0;
@@ -423,5 +591,17 @@ public class Json {
             pos++;
         }
         return map;
+    }
+
+    private static void throwParseException(char c, int pos) {
+        throw new RuntimeException("Unexpected token " + c + " in JSON at position " + pos);
+    }
+
+    private static boolean isWhitespace(char c) {
+        return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+    }
+
+    private static boolean isDigit(char c) {
+        return c >= '0' && c <= '9';
     }
 }
