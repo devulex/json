@@ -13,6 +13,8 @@ import java.util.*;
 
 /**
  * A Java serialization/deserialization class to convert Java Objects into JSON and back.
+ * <p>
+ * Implemented RFC 8259.
  *
  * @author Aleksandr Uhanov
  * @version 1.0.0
@@ -250,7 +252,7 @@ public class Json {
         }*/
         if (Collection.class.isAssignableFrom(type)) {
             List res = new ArrayList<>();
-            for (String value: jsonToList(json)) {
+            for (String value : jsonToList(json)) {
                 res.add(parse0(value, stringListClass, null));
             }
             return (T) res;
@@ -305,8 +307,18 @@ public class Json {
         return object;
     }
 
+    public static Map<String, String> jsonToPairs(String json) {
+        return (Map<String, String>) jsonToX(json, false, '{', '}');
+    }
+
     public static List<String> jsonToList(String json) {
+        return (List<String>) jsonToX(json, true, '[', ']');
+    }
+
+    public static Object jsonToX(String json, boolean isArray, char beginChar, char endChar) {
+        Map<String, String> map = new HashMap<>();
         List<String> list = new ArrayList<>();
+        StringBuilder attribute = new StringBuilder();
         StringBuilder value = new StringBuilder();
         int max = json.length();
         int pos = 0;
@@ -319,8 +331,8 @@ public class Json {
                     if (isWhitespace(c)) {
                         break;
                     }
-                    if (c == '[') {
-                        state = 1;
+                    if (c == beginChar) {
+                        state = isArray ? 4 : 1;
                         break;
                     }
                     throwParseException(c, pos);
@@ -330,267 +342,200 @@ public class Json {
                     }
                     if (c == '"') {
                         state = 2;
+                        break;
+                    }
+                    throwParseException(c, pos);
+                case 2:
+                    if (isLiteralName(c)) {
+                        attribute.append(c);
+                        break;
+                    }
+                    if (c == '"') {
+                        state = 3;
+                        break;
+                    }
+                    throwParseException(c, pos);
+                case 3:
+                    if (isWhitespace(c)) {
+                        break;
+                    }
+                    if (c == ':') {
+                        state = 4;
+                        break;
+                    }
+                    throwParseException(c, pos);
+                case 4:
+                    if (isWhitespace(c)) {
+                        break;
+                    }
+                    if (c == '"') {
+                        state = 5;
                     } else if (isDigit(c) || c == '-') {
                         value.append(c);
-                        state = 3;
+                        state = 6;
                     } else if (c == '[') {
                         value.append(c);
                         level = 0;
-                        state = 4;
+                        state = 7;
                     } else if (c == '{') {
                         value.append(c);
                         level = 0;
-                        state = 5;
-                    } else if (c == 't') {
-                        state = 6;
-                    } else if (c == 'f') {
-                        state = 7;
-                    } else if (c == 'n') {
                         state = 8;
+                    } else if (c == 't') {
+                        state = 9;
+                    } else if (c == 'f') {
+                        state = 10;
+                    } else if (c == 'n') {
+                        state = 11;
                     } else {
                         throwParseException(c, pos);
                     }
                     break;
-                case 2: // string value
+                case 5: // string value
                     if (c == '\\') {
                         pos++;
                         value.append(json.charAt(pos));
                     } else if (c == '"') {
-                        state = 9;
-                        list.add(value.toString());
+                        state = 12;
+                        if (isArray) {
+                            list.add(value.toString());
+                        } else {
+                            map.put(attribute.toString(), value.toString());
+                        }
                     } else {
                         value.append(c);
                     }
                     break;
-                case 3: // number value
+                case 6: // number value
                     if (isDigit(c)) {
                         value.append(c);
                     } else if (c == ',') {
-                        list.add(value.toString());
-                        state = 1;
-                        value = new StringBuilder();
-                    } else if (c == ']') {
-                        list.add(value.toString());
-                        state = 10;
-                    } else if (isWhitespace(c)) {
-                        list.add(value.toString());
-                        state = 9;
-                    } else {
-                        throwParseException(c, pos);
-                    }
-                    break;
-                case 4: // array value
-                    value.append(c);
-                    if (c == '[') {
-                        level++;
-                    } else if (c == ']') {
-                        if (level == 0) {
+                        if (isArray) {
                             list.add(value.toString());
-                            state = 9;
                         } else {
-                            level--;
+                            map.put(attribute.toString(), value.toString());
                         }
-                    }
-                    break;
-                case 5: // object value
-                    value.append(c);
-                    if (c == '{') {
-                        level++;
-                    } else if (c == '}') {
-                        if (level == 0) {
-                            list.add(value.toString());
-                            state = 9;
-                        } else {
-                            level--;
-                        }
-                    }
-                    break;
-                case 6: // true boolean value
-                    if (c == 'r' && json.charAt(pos + 1) == 'u' && json.charAt(pos + 2) == 'e') {
-                        pos += 2;
-                        state = 9;
-                        value.append("true");
-                        list.add(value.toString());
-                        break;
-                    }
-                    throwParseException(c, pos);
-                case 7: // false boolean value
-                    if (c == 'a' && json.charAt(pos + 1) == 'l' && json.charAt(pos + 2) == 's' && json.charAt(pos + 3) == 'e') {
-                        pos += 3;
-                        state = 9;
-                        value.append("false");
-                        list.add(value.toString());
-                        break;
-                    }
-                    throwParseException(c, pos);
-                case 8: // null value
-                    if (c == 'u' && json.charAt(pos + 1) == 'l' && json.charAt(pos + 2) == 'l') {
-                        pos += 2;
-                        state = 9;
-                        value.append("null");
-                        list.add(value.toString());
-                        break;
-                    }
-                    throwParseException(c, pos);
-                case 9:
-                    if (isWhitespace(c)) {
-                        break;
-                    } else if (c == ',') {
-                        state = 1;
-                        value = new StringBuilder();
-                        break;
-                    } else if (c == ']') {
-                        state = 10;
-                        break;
-                    } else {
-                        throwParseException(c, pos);
-                    }
-                case 10:
-                    if (isWhitespace(c)) {
-                        break;
-                    } else {
-                        throwParseException(c, pos);
-                    }
-            }
-            pos++;
-        }
-        return list;
-    }
-
-    public static Map<String, String> jsonToPairs(String json) {
-        Map<String, String> map = new HashMap<>();
-        StringBuilder attribute = new StringBuilder();
-        StringBuilder value = new StringBuilder();
-        int max = json.length();
-        int pos = 0;
-        int state = 0;
-        int level = 0;
-        while (pos < max) {
-            char c = json.charAt(pos);
-            switch (state) {
-                case 0: // start quotation mark
-                    if (c == '"') {
-                        state = 1;
+                        state = isArray ? 4 : 1;
                         attribute = new StringBuilder();
                         value = new StringBuilder();
-                    }
-                    break;
-                case 1: // attribute name
-                    if (c == '\\') {
-                        break;
-                    }
-                    if (c == '"') {
-                        state = 2;
+                    } else if (c == endChar) {
+                        if (isArray) {
+                            list.add(value.toString());
+                        } else {
+                            map.put(attribute.toString(), value.toString());
+                        }
+                        state = 13;
+                    } else if (isWhitespace(c)) {
+                        if (isArray) {
+                            list.add(value.toString());
+                        } else {
+                            map.put(attribute.toString(), value.toString());
+                        }
+                        state = 12;
                     } else {
-                        attribute.append(c);
+                        throwParseException(c, pos);
                     }
                     break;
-                case 2: // colon
-                    if (c == ':') {
-                        state = 3;
-                    }
-                    break;
-                case 3: // start value
-                    if (c == '"') {
-                        state = 4; // start string value
-                    } else if (isDigit(c)) {
-                        state = 5;  // start number value
-                        value.append(c);
-                    } else if (c == '[') {
-                        state = 6; // start array value
-                        level = 0;
-                        value.append(c);
-                    } else if (c == '{') {
-                        state = 7; // start object value
-                        level = 0;
-                        value.append(c);
-                    } else if (c == 't') {
-                        state = 8; // start boolean value
-                    } else if (c == 'f') {
-                        state = 9; // start boolean value
-                    } else if (c == 'n') {
-                        state = 10; // null value
-                    }
-                    break;
-                case 4: // string value
-                    if (c == '\\') {
-                        pos++;
-                        value.append(json.charAt(pos));
-                    } else if (c == '"') {
-                        state = 0;
-                        map.put(attribute.toString(), value.toString());
-                    } else {
-                        value.append(c);
-                    }
-                    break;
-                case 5: // number value
-                    if (isDigit(c)) {
-                        value.append(c);
-                    } else {
-                        state = 0;
-                        map.put(attribute.toString(), value.toString());
-                    }
-                    break;
-                case 6: // array value
+                case 7: // array value
                     value.append(c);
                     if (c == '[') {
                         level++;
                     } else if (c == ']') {
                         if (level == 0) {
-                            state = 0;
-                            map.put(attribute.toString(), value.toString());
+                            if (isArray) {
+                                list.add(value.toString());
+                            } else {
+                                map.put(attribute.toString(), value.toString());
+                            }
+                            state = 12;
                         } else {
                             level--;
                         }
                     }
                     break;
-                case 7: // object value
+                case 8: // object value
                     value.append(c);
                     if (c == '{') {
                         level++;
                     } else if (c == '}') {
                         if (level == 0) {
-                            state = 0;
-                            map.put(attribute.toString(), value.toString());
+                            if (isArray) {
+                                list.add(value.toString());
+                            } else {
+                                map.put(attribute.toString(), value.toString());
+                            }
+                            state = 12;
                         } else {
                             level--;
                         }
                     }
                     break;
-                case 8: // true boolean value
+                case 9: // true boolean value
                     if (c == 'r' && json.charAt(pos + 1) == 'u' && json.charAt(pos + 2) == 'e') {
                         pos += 2;
-                        state = 0;
+                        state = 12;
                         value.append("true");
-                        map.put(attribute.toString(), value.toString());
-                    } else {
-                        throw new RuntimeException("Error parsing boolean value.");
+                        if (isArray) {
+                            list.add(value.toString());
+                        } else {
+                            map.put(attribute.toString(), value.toString());
+                        }
+                        break;
                     }
-                    break;
-                case 9: // false boolean value
+                    throwParseException(c, pos);
+                case 10: // false boolean value
                     if (c == 'a' && json.charAt(pos + 1) == 'l' && json.charAt(pos + 2) == 's' && json.charAt(pos + 3) == 'e') {
                         pos += 3;
-                        state = 0;
+                        state = 12;
                         value.append("false");
-                        map.put(attribute.toString(), value.toString());
-                    } else {
-                        throw new RuntimeException("Error parsing boolean value.");
+                        if (isArray) {
+                            list.add(value.toString());
+                        } else {
+                            map.put(attribute.toString(), value.toString());
+                        }
+                        break;
                     }
-                    break;
-                case 10: // null value
+                    throwParseException(c, pos);
+                case 11: // null value
                     if (c == 'u' && json.charAt(pos + 1) == 'l' && json.charAt(pos + 2) == 'l') {
                         pos += 2;
-                        state = 0;
+                        state = 12;
                         value.append("null");
-                        map.put(attribute.toString(), value.toString());
-                    } else {
-                        throw new RuntimeException("Error parsing null value.");
+                        if (isArray) {
+                            list.add(value.toString());
+                        } else {
+                            map.put(attribute.toString(), value.toString());
+                        }
+                        break;
                     }
-                    break;
+                    throwParseException(c, pos);
+                case 12:
+                    if (isWhitespace(c)) {
+                        break;
+                    } else if (c == ',') {
+                        state = isArray ? 4 : 1;
+                        attribute = new StringBuilder();
+                        value = new StringBuilder();
+                        break;
+                    } else if (c == endChar) {
+                        state = 13;
+                        break;
+                    } else {
+                        throwParseException(c, pos);
+                    }
+                case 13:
+                    if (isWhitespace(c)) {
+                        break;
+                    } else {
+                        throwParseException(c, pos);
+                    }
             }
             pos++;
         }
-        return map;
+        if (state != 13) {
+            throw new RuntimeException("Unexpected end of JSON");
+        }
+        return isArray ? list : map;
     }
 
     private static void throwParseException(char c, int pos) {
@@ -603,5 +548,9 @@ public class Json {
 
     private static boolean isDigit(char c) {
         return c >= '0' && c <= '9';
+    }
+
+    private static boolean isLiteralName(char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
     }
 }

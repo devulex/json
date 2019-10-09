@@ -50,7 +50,7 @@ public class JsonListTest {
 
     @Test
     public void jsonToListOfArraysTest() {
-        List<String> list = Json.jsonToList("[[1,2,3],[4,5],[-7,12,200,400]");
+        List<String> list = Json.jsonToList("[[1,2,3],[4,5],[-7,12,200,400]]");
         assertEquals(3, list.size());
         assertEquals("[1,2,3]", list.get(0));
         assertEquals("[4,5]", list.get(1));
@@ -59,7 +59,7 @@ public class JsonListTest {
 
     @Test
     public void jsonToListOfArraysWithWhitespacesTest() {
-        List<String> list = Json.jsonToList("[\n\n[1,2,3]\r\n  ,[4,5 ]  ,[-7  ,12,200,\t\t400]  ");
+        List<String> list = Json.jsonToList("[\n\n[1,2,3]\r\n  ,[4,5 ]  ,[-7  ,12,200,\t\t400] ] ");
         assertEquals(3, list.size());
         assertEquals("[1,2,3]", list.get(0));
         assertEquals("[4,5 ]", list.get(1));

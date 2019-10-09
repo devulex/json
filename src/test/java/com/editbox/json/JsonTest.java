@@ -1,5 +1,6 @@
 package com.editbox.json;
 
+import com.editbox.json.entity.Person;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
@@ -94,6 +95,25 @@ public class JsonTest {
     @Test
     public void jsonToPairsTest() {
         Json.jsonToPairs("{\"firstName\" : \"John\", \"isAlive\": true,\"age\":27, \"phones\": [[123], [456]] , \"spouse\": null}");
+    }
+
+    @Test
+    public void jsonToPairsPerformanceTest() {
+        long start = System.nanoTime();
+        for (int i = 0; i < 1000_000; i++) {
+            Json.jsonToPairs("{\"firstName\": \"Elon\", \"lastName\": \"Musk\",\"age\":48, \"single\": true, \"balance\": 800.500}");
+        }
+        System.out.println("Duration " + (System.nanoTime() - start) / 1000_000d + "ms");
+    }
+
+    @Test
+    public void jsonToPairsPerformanceGsonTest() {
+        long start = System.nanoTime();
+        Gson gson = new Gson();
+        for (int i = 0; i < 1000_000; i++) {
+            gson.fromJson("{\"firstName\": \"Elon\", \"lastName\": \"Musk\",\"age\":48, \"single\": true, \"balance\": 800.500}", Person.class);
+        }
+        System.out.println("Duration " + (System.nanoTime() - start) / 1000_000d + "ms");
     }
 
     private Entity createTestJsonEntity() {
