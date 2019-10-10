@@ -41,7 +41,7 @@ public class Json {
             throw new RuntimeException("Parameter valueType cannot be null.");
         }
         try {
-            return parse0(json, valueType, null);
+            return parse0(json, valueType, null, null);
         } catch (Exception e) {
             throw new RuntimeException("Json parse exception.", e);
         }
@@ -212,13 +212,15 @@ public class Json {
         return arrayOfObjects;
     }
 
-    private static <T> T parse0(String json, Class<T> type, Class<?> stringListClass) throws Exception {
-        json = json.trim();
+    private static <T> T parse0(String json, Class<T> type, Class<?> parameterizedType, Class<?> parameterizedTypeMap) throws Exception {
         String typeName = type.getName();
         switch (typeName) {
             case "boolean":
             case "java.lang.Boolean":
                 return (T) Boolean.valueOf(json);
+            case "byte":
+            case "java.lang.Byte":
+                return (T) Byte.valueOf(json);
             case "short":
             case "java.lang.Short":
                 return (T) Short.valueOf(json);
@@ -236,36 +238,37 @@ public class Json {
                 return (T) Double.valueOf(json);
             case "java.lang.String":
                 return (T) json;
+            case "java.util.UUID":
+                return (T) UUID.fromString(json);
         }
-        /*if (typeName.startsWith("[")) {
-            for (String value: jsonToList(json)) {
-
+        if (typeName.startsWith("[")) {
+            List<String> values = jsonToList(json);
+            int length = values.size();
+            Object array = Array.newInstance(parameterizedType, length);
+            for (int i = 0; i < length; i++) {
+                Array.set(array, i, values.get(i));
             }
-            return ;
-        }*/
+            return (T) array;
+        }
         if (Collection.class.isAssignableFrom(type)) {
-            List res = new ArrayList<>();
+            List list = new ArrayList<>();
             for (String value : jsonToList(json)) {
-                res.add(parse0(value, stringListClass, null));
+                list.add(parse0(value, parameterizedType, null, null));
             }
-            return (T) res;
+            return (T) list;
         }
-        /*if (Map.class.isAssignableFrom(type)) {
-            return parseMap(json, type);
-        }*/
+        if (Map.class.isAssignableFrom(type)) {
+            Map map = new HashMap<>();
+            for (Map.Entry<String, String> entry : jsonToMap(json).entrySet()) {
+                map.put(entry.getKey(), parse0(entry.getValue(), parameterizedTypeMap, null, null));
+            }
+            return (T) map;
+        }
         return parseFields(json, type);
     }
 
-    private static <T> T parseList(String json, Class<T> type) {
-        return null; // TODO
-    }
-
-    private static <T> T parseMap(String json, Class<T> type) {
-        return null; // TODO
-    }
-
     private static <T> T parseFields(String json, Class<T> type) throws Exception {
-        Map<String, String> pairs = jsonToPairs(json);
+        Map<String, String> pairs = jsonToMap(json);
         T object;
         try {
             object = type.getConstructor().newInstance();
@@ -284,20 +287,28 @@ public class Json {
             }
             field.setAccessible(true);
             String fieldName = field.getName();
+            Class<?> fieldType = field.getType();
             String value = pairs.get(fieldName);
             if (value != null) {
-                Class<?> stringListClass = null;
-                if (Collection.class.isAssignableFrom(field.getType())) {
+                Class<?> parameterizedType = null;
+                Class<?> parameterizedTypeMap = null;
+                if (fieldType.isArray()) {
+                    parameterizedType = fieldType.getComponentType();
+                } else if (Collection.class.isAssignableFrom(field.getType())) {
                     ParameterizedType listTypes = (ParameterizedType) field.getGenericType();
-                    stringListClass = (Class<?>) listTypes.getActualTypeArguments()[0];
+                    parameterizedType = (Class<?>) listTypes.getActualTypeArguments()[0];
+                } else if (Map.class.isAssignableFrom(field.getType())) {
+                    ParameterizedType listTypes = (ParameterizedType) field.getGenericType();
+                    parameterizedType = (Class<?>) listTypes.getActualTypeArguments()[0];
+                    parameterizedTypeMap = (Class<?>) listTypes.getActualTypeArguments()[1];
                 }
-                field.set(object, parse0(value, field.getType(), stringListClass));
+                field.set(object, parse0(value, fieldType, parameterizedType, parameterizedTypeMap));
             }
         }
         return object;
     }
 
-    public static Map<String, String> jsonToPairs(String json) {
+    public static Map<String, String> jsonToMap(String json) {
         return jsonToX(json, false, '{', '}').map;
     }
 
@@ -418,7 +429,7 @@ public class Json {
                     }
                     break;
                 case 6: // number value
-                    if (isDigit(c)) {
+                    if (isDigit(c) || c == '.') {
                         value.append(c);
                     } else if (c == ',') {
                         if (isArray) {
