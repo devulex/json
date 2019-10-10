@@ -15,7 +15,7 @@ import java.util.UUID;
  * Test entity with fields of different types.
  *
  * @author Aleksandr Uhanov
- * @since 2019-09-28
+ * @since 2019-10-11
  */
 public class Entity {
 

@@ -22,7 +22,7 @@ import static org.junit.Assert.*;
  * Tests for Java serialization/deserialization class.
  *
  * @author Aleksandr Uhanov
- * @since 2019-10-07
+ * @since 2019-10-11
  */
 public class JsonTest {
 
@@ -50,29 +50,6 @@ public class JsonTest {
         System.out.println("The JSON:     " + Json.format(object));
         System.out.println("Gson JSON:    " + new Gson().toJson(object));
         System.out.println("Jackson JSON: " + mapper.writeValueAsString(object));
-    }
-
-    @Test
-    public void performanceTheJsonTest() {
-        Entity object = createTestJsonEntity();
-        int SIZE = 1000_000;
-        long start = System.nanoTime();
-        for (int i = 0; i < SIZE; i++) {
-            Json.format(object);
-        }
-        System.out.println("Serialization duration " + (System.nanoTime() - start) / 1000_000d + "ms");
-    }
-
-    @Test
-    public void performanceGsonTest() {
-        Entity object = createTestJsonEntity();
-        int SIZE = 1000_000;
-        long start = System.nanoTime();
-        Gson gson = new Gson();
-        for (int i = 0; i < SIZE; i++) {
-            gson.toJson(object);
-        }
-        System.out.println("Serialization duration " + (System.nanoTime() - start) / 1000_000d + "ms");
     }
 
     @Test
@@ -131,9 +108,20 @@ public class JsonTest {
         assertEquals(original.getObjectInt(), parsed.getObjectInt());
         assertEquals(original.getPrimitiveLong(), parsed.getPrimitiveLong());
         assertEquals(original.getObjectLong(), parsed.getObjectLong());
+        assertEquals(original.getPrimitiveFloat(), parsed.getPrimitiveFloat(), 1);
+        assertEquals(original.getObjectFloat(), parsed.getObjectFloat());
+        assertEquals(original.getPrimitiveDouble(), parsed.getPrimitiveDouble(), 1);
+        assertEquals(original.getObjectDouble(), parsed.getObjectDouble());
+        assertEquals(original.getBigInteger(), parsed.getBigInteger());
+        assertEquals(original.getBigDecimal(), parsed.getBigDecimal());
         assertEquals(original.getString(), parsed.getString());
-        //assertEquals(original.getStringWithSpecChars(), parsed.getStringWithSpecChars()); // TODO
+        assertEquals(original.getStringWithSpecChars(), parsed.getStringWithSpecChars());
         assertEquals(original.getUuid(), parsed.getUuid());
+        assertEquals(original.getDate(), parsed.getDate());
+        assertEquals(original.getLocalDate(), parsed.getLocalDate());
+        assertEquals(original.getLocalTime(), parsed.getLocalTime());
+        assertEquals(original.getLocalDateTime(), parsed.getLocalDateTime());
+        assertEquals(original.getZonedDateTime(), parsed.getZonedDateTime());
         assertArrayEquals(original.getArray(), parsed.getArray());
         assertEquals(original.getList(), parsed.getList());
         assertEquals(original.getMap(), parsed.getMap());
@@ -163,7 +151,7 @@ public class JsonTest {
         System.out.println("Duration " + (System.nanoTime() - start) / 1000_000d + "ms");
     }
 
-    private Entity createTestJsonEntity() {
+    static Entity createTestJsonEntity() {
         Entity object = new Entity();
         object.setObjectBoolean(true);
         object.setPrimitiveBoolean(false);
@@ -175,22 +163,22 @@ public class JsonTest {
         object.setObjectInt(222222222);
         object.setPrimitiveLong(2222222222222222222L);
         object.setObjectLong(2222222222222222222L);
-        //object.setPrimitiveFloat(3.1415929f);
-        //object.setObjectFloat(3.1415929f);
-        //object.setPrimitiveDouble(3.141592653589793);
-        //object.setBigInteger(BigInteger.valueOf(299_792_458));
-        //object.setBigDecimal(BigDecimal.valueOf(3.141592653589793));
-        //object.setObjectDouble(3.141592653589793);
+        object.setPrimitiveFloat(3.1415929f);
+        object.setObjectFloat(3.1415929f);
+        object.setPrimitiveDouble(3.141592653589793);
+        object.setObjectDouble(3.141592653589793);
+        object.setBigInteger(BigInteger.valueOf(299_792_458));
+        object.setBigDecimal(BigDecimal.valueOf(3.141592653589793));
         object.setString("Hello world!");
         object.setStringWithSpecChars("Spec chars: \" \\ / \b \f \n \r \t");
         object.setUuid(UUID.randomUUID());
-        //object.setDate(new Date(1537967663953L));
-        //LocalDateTime dateTime = LocalDateTime.of(2018, 9, 26, 16, 15, 57, 469713000);
-        //object.setLocalDate(dateTime.toLocalDate());
-        //object.setLocalTime(dateTime.toLocalTime());
-        //object.setLocalDateTime(dateTime);
-        //object.setZonedDateTime(dateTime.atZone(ZoneId.systemDefault()));
-        object.setArray(new String[]{"First", "Second", "Third"});
+        object.setDate(new Date(1570739779857L));
+        LocalDateTime dateTime = LocalDateTime.of(2018, 9, 26, 16, 15, 57, 469713000);
+        object.setLocalDate(dateTime.toLocalDate());
+        object.setLocalTime(dateTime.toLocalTime());
+        object.setLocalDateTime(dateTime);
+        object.setZonedDateTime(dateTime.atZone(ZoneId.systemDefault()));
+        object.setArray(new String[]{"Mercury", "Venus", "Earth"});
         object.setList(Stream.of("One", "Two", "Three").collect(Collectors.toList()));
         object.setMap(new HashMap<String, Integer>() {{
             put("One", 1);

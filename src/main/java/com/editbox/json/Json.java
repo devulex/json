@@ -4,11 +4,12 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -18,7 +19,7 @@ import java.util.*;
  *
  * @author Aleksandr Uhanov
  * @version 1.0.0
- * @since 2019-10-10
+ * @since 2019-10-11
  */
 public class Json {
 
@@ -79,16 +80,10 @@ public class Json {
                 builder.append(((Date) source).getTime());
                 return;
             case "java.time.LocalDate":
-                builder.append("\"").append(((LocalDate) source).format(DateTimeFormatter.ISO_DATE)).append("\"");
-                return;
             case "java.time.LocalTime":
-                builder.append("\"").append(((LocalTime) source).format(DateTimeFormatter.ISO_TIME)).append("\"");
-                return;
             case "java.time.LocalDateTime":
-                builder.append("\"").append(((LocalDateTime) source).format(DateTimeFormatter.ISO_DATE_TIME)).append("\"");
-                return;
             case "java.time.ZonedDateTime":
-                builder.append("\"").append(((ZonedDateTime) source).format(DateTimeFormatter.ISO_ZONED_DATE_TIME)).append("\"");
+                builder.append("\"").append(source).append("\"");
                 return;
         }
         if (typeName.startsWith("[") || source instanceof Collection) {
@@ -236,10 +231,24 @@ public class Json {
             case "double":
             case "java.lang.Double":
                 return (T) Double.valueOf(json);
+            case "java.math.BigInteger":
+                return (T) new BigInteger(json);
+            case "java.math.BigDecimal":
+                return (T) new BigDecimal(json);
             case "java.lang.String":
                 return (T) json;
             case "java.util.UUID":
                 return (T) UUID.fromString(json);
+            case "java.util.Date":
+                return (T) new Date(Long.parseLong(json));
+            case "java.time.LocalDate":
+                return (T) LocalDate.parse(json);
+            case "java.time.LocalTime":
+                return (T) LocalTime.parse(json);
+            case "java.time.LocalDateTime":
+                return (T) LocalDateTime.parse(json);
+            case "java.time.ZonedDateTime":
+                return (T) ZonedDateTime.parse(json);
         }
         if (typeName.startsWith("[")) {
             List<String> values = jsonToList(json);
@@ -416,7 +425,33 @@ public class Json {
                 case 5: // string value
                     if (c == '\\') {
                         pos++;
-                        value.append(json.charAt(pos));
+                        c = json.charAt(pos);
+                        switch (c) {
+                            case '"':
+                                value.append('"');
+                                break;
+                            case '\\':
+                                value.append('\\');
+                                break;
+                            case 'b':
+                                value.append('\b');
+                                break;
+                            case 'f':
+                                value.append('\f');
+                                break;
+                            case 'n':
+                                value.append('\n');
+                                break;
+                            case 'r':
+                                value.append('\r');
+                                break;
+                            case 't':
+                                value.append('\t');
+                                break;
+                            default:
+                                throwParseException(c, pos);
+                                break;
+                        }
                     } else if (c == '"') {
                         state = 12;
                         if (isArray) {
@@ -429,7 +464,7 @@ public class Json {
                     }
                     break;
                 case 6: // number value
-                    if (isDigit(c) || c == '.') {
+                    if (isDigit(c) || c == '.' || c == 'e' || c == 'E' || c == '+' || c == '-') {
                         value.append(c);
                     } else if (c == ',') {
                         if (isArray) {

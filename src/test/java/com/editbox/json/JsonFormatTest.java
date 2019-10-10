@@ -8,7 +8,7 @@ import static org.junit.Assert.assertEquals;
  * Tests for Java serialization/deserialization class.
  *
  * @author Aleksandr Uhanov
- * @since 2019-10-10
+ * @since 2019-10-11
  */
 public class JsonFormatTest {
 
