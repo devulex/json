@@ -152,9 +152,6 @@ public class Json {
                     continue;
                 }
                 field.setAccessible(true);
-                if (Modifier.isTransient(field.getModifiers())) {
-                    continue;
-                }
                 String name = field.getName();
                 Object fieldValue = field.get(source);
                 if (fieldValue == null) {
@@ -286,9 +283,6 @@ public class Json {
                 continue;
             }
             field.setAccessible(true);
-            if (Modifier.isTransient(field.getModifiers())) {
-                continue;
-            }
             String fieldName = field.getName();
             String value = pairs.get(fieldName);
             if (value != null) {
