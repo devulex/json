@@ -2,6 +2,7 @@
 Json is a Java library that can be used to convert Java Objects into their JSON representation.
 It can also be used to convert a JSON string to an equivalent Java object.
 Json can work with arbitrary Java objects including pre-existing objects that you do not have source-code of.
+The library compatible with Java 8.
 
 ### Goals
   * Provide simple `format()` and `parse()` methods to convert Java objects to JSON and vice-versa
@@ -12,4 +13,4 @@ Json can work with arbitrary Java objects including pre-existing objects that yo
 
 ### Download
 
-Just copy package `com.editbox.json` to your project.
+Just copy class `com.editbox.json.Json` to your project.

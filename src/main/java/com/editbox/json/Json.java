@@ -304,14 +304,14 @@ public class Json {
     }
 
     public static Map<String, String> jsonToPairs(String json) {
-        return (Map<String, String>) jsonToX(json, false, '{', '}');
+        return jsonToX(json, false, '{', '}').map;
     }
 
     public static List<String> jsonToList(String json) {
-        return (List<String>) jsonToX(json, true, '[', ']');
+        return jsonToX(json, true, '[', ']').list;
     }
 
-    public static Object jsonToX(String json, boolean isArray, char beginChar, char endChar) {
+    private static ParseResult jsonToX(String json, boolean isArray, char beginChar, char endChar) {
         Map<String, String> map = new HashMap<>();
         List<String> list = new ArrayList<>();
         StringBuilder attribute = new StringBuilder();
@@ -377,12 +377,33 @@ public class Json {
                         value.append(c);
                         level = 0;
                         state = 8;
-                    } else if (c == 't') {
-                        state = 9;
+                    } else if (c == 't' && json.charAt(pos + 1) == 'r' && json.charAt(pos + 2) == 'u' && json.charAt(pos + 3) == 'e') {
+                        value.append("true");
+                        if (isArray) {
+                            list.add(value.toString());
+                        } else {
+                            map.put(attribute.toString(), value.toString());
+                        }
+                        pos += 3;
+                        state = 12;
                     } else if (c == 'f') {
-                        state = 10;
-                    } else if (c == 'n') {
-                        state = 11;
+                        value.append("false");
+                        if (isArray) {
+                            list.add(value.toString());
+                        } else {
+                            map.put(attribute.toString(), value.toString());
+                        }
+                        pos += 4;
+                        state = 12;
+                    } else if (c == 'n' && json.charAt(pos + 1) == 'u' && json.charAt(pos + 2) == 'l' && json.charAt(pos + 3) == 'l') {
+                        value.append("null");
+                        if (isArray) {
+                            list.add(value.toString());
+                        } else {
+                            map.put(attribute.toString(), value.toString());
+                        }
+                        pos += 3;
+                        state = 12;
                     } else {
                         throwParseException(c, pos);
                     }
@@ -466,45 +487,6 @@ public class Json {
                         }
                     }
                     break;
-                case 9: // true boolean value
-                    if (c == 'r' && json.charAt(pos + 1) == 'u' && json.charAt(pos + 2) == 'e') {
-                        pos += 2;
-                        state = 12;
-                        value.append("true");
-                        if (isArray) {
-                            list.add(value.toString());
-                        } else {
-                            map.put(attribute.toString(), value.toString());
-                        }
-                        break;
-                    }
-                    throwParseException(c, pos);
-                case 10: // false boolean value
-                    if (c == 'a' && json.charAt(pos + 1) == 'l' && json.charAt(pos + 2) == 's' && json.charAt(pos + 3) == 'e') {
-                        pos += 3;
-                        state = 12;
-                        value.append("false");
-                        if (isArray) {
-                            list.add(value.toString());
-                        } else {
-                            map.put(attribute.toString(), value.toString());
-                        }
-                        break;
-                    }
-                    throwParseException(c, pos);
-                case 11: // null value
-                    if (c == 'u' && json.charAt(pos + 1) == 'l' && json.charAt(pos + 2) == 'l') {
-                        pos += 2;
-                        state = 12;
-                        value.append("null");
-                        if (isArray) {
-                            list.add(value.toString());
-                        } else {
-                            map.put(attribute.toString(), value.toString());
-                        }
-                        break;
-                    }
-                    throwParseException(c, pos);
                 case 12:
                     if (isWhitespace(c)) {
                         break;
@@ -531,7 +513,7 @@ public class Json {
         if (state != 13) {
             throw new RuntimeException("Unexpected end of JSON");
         }
-        return isArray ? list : map;
+        return isArray ? ParseResult.fromList(list) : ParseResult.fromMap(map);
     }
 
     private static void throwParseException(char c, int pos) {
@@ -548,5 +530,24 @@ public class Json {
 
     private static boolean isLiteralName(char c) {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
+    }
+
+    private static class ParseResult {
+
+        Map<String, String> map;
+        List<String> list;
+
+        private ParseResult(Map<String, String> map, List<String> list) {
+            this.map = map;
+            this.list = list;
+        }
+
+        static ParseResult fromMap(Map<String, String> map) {
+            return new ParseResult(map, null);
+        }
+
+        static ParseResult fromList(List<String> list) {
+            return new ParseResult(null, list);
+        }
     }
 }
