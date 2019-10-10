@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
- * tests for Java serialization/deserialization class.
+ * Tests for Java serialization/deserialization class.
  *
  * @author Aleksandr Uhanov
  * @since 2019-10-07

@@ -4,27 +4,18 @@ import java.util.List;
 
 public class Person {
 
-    private String firstName;
-    private String lastName;
+    private String name;
     private int age;
     private boolean single;
     private List<PhoneNumber> phoneNumbers;
     private double balance;
 
-    public String getFirstName() {
-        return firstName;
+    public String getName() {
+        return name;
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public int getAge() {

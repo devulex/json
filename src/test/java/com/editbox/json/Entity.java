@@ -21,7 +21,6 @@ public class Entity {
 
     private final static String staticField = "staticFieldValue";
 
-    @JsonIncludeNull
     private String nullField;
 
     private boolean primitiveBoolean;
@@ -34,8 +33,6 @@ public class Entity {
 
     private short primitiveShort;
 
-    // transient - exclude field from Serialization for Gson
-    @com.editbox.json.JsonIgnore
     @com.fasterxml.jackson.annotation.JsonIgnore
     private transient Short objectShort;
 

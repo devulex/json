@@ -18,7 +18,7 @@ import java.util.*;
  *
  * @author Aleksandr Uhanov
  * @version 1.0.0
- * @since 2019-10-07
+ * @since 2019-10-10
  */
 public class Json {
 
@@ -152,20 +152,16 @@ public class Json {
                     continue;
                 }
                 field.setAccessible(true);
-                if (field.getAnnotation(JsonIgnore.class) != null) {
+                if (Modifier.isTransient(field.getModifiers())) {
                     continue;
                 }
                 String name = field.getName();
                 Object fieldValue = field.get(source);
-                if (fieldValue == null && field.getAnnotation(JsonIncludeNull.class) == null) {
+                if (fieldValue == null) {
                     continue;
                 }
                 builder.append("\"").append(name).append("\"").append(":");
-                if (fieldValue == null) {
-                    builder.append("null");
-                } else {
-                    format0(fieldValue, builder);
-                }
+                format0(fieldValue, builder);
                 builder.append(FIELD_SEPARATOR);
             }
             if (builder.charAt(builder.length() - 1) == FIELD_SEPARATOR) {
@@ -290,7 +286,7 @@ public class Json {
                 continue;
             }
             field.setAccessible(true);
-            if (field.getAnnotation(JsonIgnore.class) != null) {
+            if (Modifier.isTransient(field.getModifiers())) {
                 continue;
             }
             String fieldName = field.getName();

@@ -5,7 +5,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 
 /**
- * tests for Java serialization/deserialization class.
+ * Tests for Java serialization/deserialization class.
  *
  * @author Aleksandr Uhanov
  * @since 2019-10-07
