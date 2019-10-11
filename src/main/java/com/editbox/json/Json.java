@@ -25,6 +25,12 @@ public class Json {
 
     private static final char FIELD_SEPARATOR = ',';
 
+    /**
+     * This method serializes the specified object into its equivalent Json representation.
+     *
+     * @param source the object for which Json representation is to be created setting for Json
+     * @return Json representation of {@code source}.
+     */
     public static String format(Object source) {
         if (source == null) {
             return null;
@@ -34,6 +40,15 @@ public class Json {
         return builder.toString();
     }
 
+    /**
+     * This method deserializes the specified Json into an object of the specified class.
+     *
+     * @param <T>       the type of the desired object
+     * @param json      the string from which the object is to be deserialized
+     * @param valueType the class of T
+     * @return an object of type T from the string.
+     * @throws RuntimeException if json is not a valid representation for an object of type valueType
+     */
     public static <T> T parse(String json, Class<T> valueType) {
         if (json == null) {
             return null;
