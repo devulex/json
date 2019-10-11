@@ -318,14 +318,14 @@ public class Json {
     }
 
     public static Map<String, String> jsonToMap(String json) {
-        return jsonToX(json, false, '{', '}').map;
+        return jsonToMapOrList(json, false, '{', '}').map;
     }
 
     public static List<String> jsonToList(String json) {
-        return jsonToX(json, true, '[', ']').list;
+        return jsonToMapOrList(json, true, '[', ']').list;
     }
 
-    private static ParseResult jsonToX(String json, boolean isArray, char beginChar, char endChar) {
+    private static ParseResult jsonToMapOrList(String json, boolean isArray, char beginChar, char endChar) {
         Map<String, String> map = new HashMap<>();
         List<String> list = new ArrayList<>();
         StringBuilder attribute = new StringBuilder();
