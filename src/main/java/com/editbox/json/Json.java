@@ -101,7 +101,7 @@ public class Json {
                 builder.append("\"").append(source).append("\"");
                 return;
         }
-        if (typeName.startsWith("[") || source instanceof Collection) {
+        if (type.isArray() || source instanceof Collection) {
             formatList(source, typeName, builder);
             return;
         }
