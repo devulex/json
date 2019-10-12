@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZonedDateTime;
+import java.time.temporal.Temporal;
 import java.util.*;
 
 /**
@@ -65,44 +66,24 @@ public class Json {
 
     private static void format0(Object source, StringBuilder builder) {
         Class type = source.getClass();
-        String typeName = type.getName();
-        switch (typeName) {
-            case "boolean":
-            case "java.lang.Boolean":
-            case "byte":
-            case "java.lang.Byte":
-            case "short":
-            case "java.lang.Short":
-            case "int":
-            case "java.lang.Integer":
-            case "long":
-            case "java.lang.Long":
-            case "float":
-            case "java.lang.Float":
-            case "double":
-            case "java.lang.Double":
-            case "java.math.BigInteger":
-            case "java.math.BigDecimal":
-                builder.append(source);
-                return;
-            case "java.lang.String":
-                builder.append("\"").append(escapeString(source.toString())).append("\"");
-                return;
-            case "java.util.UUID":
-                builder.append("\"").append(source.toString()).append("\"");
-                return;
-            case "java.util.Date":
-                builder.append(((Date) source).getTime());
-                return;
-            case "java.time.LocalDate":
-            case "java.time.LocalTime":
-            case "java.time.LocalDateTime":
-            case "java.time.ZonedDateTime":
-                builder.append("\"").append(source).append("\"");
-                return;
+        if (source instanceof Number || source instanceof Boolean) {
+            builder.append(source);
+            return;
+        }
+        if (source instanceof String) {
+            builder.append("\"").append(escapeString(source.toString())).append("\"");
+            return;
+        }
+        if (source instanceof Temporal || source instanceof UUID) {
+            builder.append("\"").append(source).append("\"");
+            return;
+        }
+        if (source instanceof Date) {
+            builder.append(((Date) source).getTime());
+            return;
         }
         if (type.isArray() || source instanceof Collection) {
-            formatList(source, typeName, builder);
+            formatList(source, type, builder);
             return;
         }
         if (source instanceof Map) {
@@ -116,9 +97,9 @@ public class Json {
         formatFields(source, builder);
     }
 
-    private static void formatList(Object source, String typeName, StringBuilder builder) {
+    private static void formatList(Object source, Class type, StringBuilder builder) {
         builder.append("[");
-        if (typeName.startsWith("[")) {
+        if (type.isArray()) {
             for (Object item : unpack(source)) {
                 format0(item, builder);
                 builder.append(FIELD_SEPARATOR);
