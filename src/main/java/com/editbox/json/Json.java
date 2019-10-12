@@ -109,6 +109,10 @@ public class Json {
             formatMap(source, builder);
             return;
         }
+        if (type.isEnum()) {
+            builder.append("\"").append(source).append("\"");
+            return;
+        }
         formatFields(source, builder);
     }
 
