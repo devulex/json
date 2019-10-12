@@ -6,7 +6,7 @@ import org.junit.Test;
  * Tests for Java serialization/deserialization class.
  *
  * @author Aleksandr Uhanov
- * @since 2019-10-11
+ * @since 2019-10-12
  */
 public class JsonPerformanceTest {
 

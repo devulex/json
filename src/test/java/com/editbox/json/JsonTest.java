@@ -22,7 +22,7 @@ import static org.junit.Assert.*;
  * Tests for Java serialization/deserialization class.
  *
  * @author Aleksandr Uhanov
- * @since 2019-10-11
+ * @since 2019-10-12
  */
 public class JsonTest {
 
@@ -50,46 +50,6 @@ public class JsonTest {
         System.out.println("The JSON:     " + Json.format(object));
         System.out.println("Gson JSON:    " + new Gson().toJson(object));
         System.out.println("Jackson JSON: " + mapper.writeValueAsString(object));
-    }
-
-    @Test
-    public void parseBooleanIntStringTest() {
-        String json = "{\"primitiveBoolean\": true, \"primitiveInt\": 123, \"objectInt\": 456, \"string\": \"Hello world!\"}";
-        Entity object = Json.parse(json, Entity.class);
-        assertTrue(object.isPrimitiveBoolean());
-        assertEquals(123, object.getPrimitiveInt());
-        assertEquals(456, (int) object.getObjectInt());
-        assertEquals("Hello world!", object.getString());
-    }
-
-    @Test
-    public void parseArrayOfStringTest() {
-        String json = "{\"primitiveBoolean\": true, \"array\": [\"Ford\", \"Audi\"]}";
-        Entity object = Json.parse(json, Entity.class);
-        assertTrue(object.isPrimitiveBoolean());
-        assertEquals(2, object.getArray().length);
-        assertEquals("Ford", object.getArray()[0]);
-        assertEquals("Audi", object.getArray()[1]);
-    }
-
-    @Test
-    public void parseListOfStringTest() {
-        String json = "{\"primitiveBoolean\": true, \"list\": [\"Ford\", \"Audi\"]}";
-        Entity object = Json.parse(json, Entity.class);
-        assertTrue(object.isPrimitiveBoolean());
-        assertEquals(2, object.getList().size());
-        assertEquals("Ford", object.getList().get(0));
-        assertEquals("Audi", object.getList().get(1));
-    }
-
-    @Test
-    public void parseMapOfStringTest() {
-        String json = "{\"primitiveBoolean\": true, \"map\": {\"size\": 10, \"count\": 20}}";
-        Entity object = Json.parse(json, Entity.class);
-        assertTrue(object.isPrimitiveBoolean());
-        assertEquals(2, object.getMap().keySet().size());
-        assertEquals(10, (int) object.getMap().get("size"));
-        assertEquals(20, (int) object.getMap().get("count"));
     }
 
     @Test

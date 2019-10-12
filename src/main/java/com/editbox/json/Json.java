@@ -19,7 +19,7 @@ import java.util.*;
  *
  * @author Aleksandr Uhanov
  * @version 1.0.0
- * @since 2019-10-11
+ * @since 2019-10-12
  */
 public class Json {
 
@@ -313,7 +313,7 @@ public class Json {
             String fieldName = field.getName();
             Class<?> fieldType = field.getType();
             String value = pairs.get(fieldName);
-            if (value != null) {
+            if (value != null && !value.equals("null")) {
                 Class<?> parameterizedType = null;
                 Class<?> parameterizedTypeMap = null;
                 if (fieldType.isArray()) {
@@ -406,7 +406,7 @@ public class Json {
                         value.append(c);
                         level = 0;
                         state = 8;
-                    } else if (c == 't' && json.charAt(pos + 1) == 'r' && json.charAt(pos + 2) == 'u' && json.charAt(pos + 3) == 'e') {
+                    } else if (json.substring(pos, pos + 4).equalsIgnoreCase("true")) {
                         value.append("true");
                         if (isArray) {
                             list.add(value.toString());
@@ -415,7 +415,7 @@ public class Json {
                         }
                         pos += 3;
                         state = 12;
-                    } else if (c == 'f') {
+                    } else if (json.substring(pos, pos + 5).equalsIgnoreCase("false")) {
                         value.append("false");
                         if (isArray) {
                             list.add(value.toString());
@@ -424,7 +424,7 @@ public class Json {
                         }
                         pos += 4;
                         state = 12;
-                    } else if (c == 'n' && json.charAt(pos + 1) == 'u' && json.charAt(pos + 2) == 'l' && json.charAt(pos + 3) == 'l') {
+                    } else if (json.substring(pos, pos + 4).equalsIgnoreCase("null")) {
                         value.append("null");
                         if (isArray) {
                             list.add(value.toString());
@@ -462,6 +462,12 @@ public class Json {
                                 break;
                             case 't':
                                 value.append('\t');
+                                break;
+                            case 'u':
+                                int code = Integer.parseInt(json.substring(pos + 1, pos + 5), 16);
+                                char unicodeChar = Character.toChars(code)[0];
+                                value.append(unicodeChar);
+                                pos += 4;
                                 break;
                             default:
                                 throwParseException(c, pos);
