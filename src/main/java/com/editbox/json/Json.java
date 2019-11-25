@@ -255,7 +255,7 @@ public class Json {
             int length = values.size();
             Object array = Array.newInstance(parameterizedType, length);
             for (int i = 0; i < length; i++) {
-                Array.set(array, i, values.get(i));
+                Array.set(array, i, parse0(values.get(i), parameterizedType, null, null));
             }
             return (T) array;
         }
