@@ -101,11 +101,17 @@ public class Json {
         builder.append("[");
         if (type.isArray()) {
             for (Object item : unpack(source)) {
+                if (item == null) {
+                    continue;
+                }
                 format0(item, builder);
                 builder.append(FIELD_SEPARATOR);
             }
         } else {
             for (Object item : (Collection) source) {
+                if (item == null) {
+                    continue;
+                }
                 format0(item, builder);
                 builder.append(FIELD_SEPARATOR);
             }
@@ -121,6 +127,9 @@ public class Json {
         builder.append("{");
         for (Object object : ((Map) source).entrySet()) {
             Map.Entry entry = (Map.Entry) object;
+            if (entry.getValue() == null) {
+                continue;
+            }
             builder.append("\"").append(entry.getKey()).append("\"").append(":");
             format0(entry.getValue(), builder);
             builder.append(FIELD_SEPARATOR);
