@@ -3,7 +3,6 @@ package com.editbox.json;
 import com.editbox.json.entity.Computer;
 import com.editbox.json.entity.Person;
 import com.editbox.json.entity.PhoneNumber;
-import com.google.gson.Gson;
 import org.junit.Test;
 
 import java.util.Arrays;

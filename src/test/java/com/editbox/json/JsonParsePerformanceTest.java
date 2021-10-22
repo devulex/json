@@ -12,11 +12,11 @@ import org.junit.Test;
  */
 public class JsonParsePerformanceTest {
 
-    private static String json = "{\"name\": \"Elon Musk\",\"age\":48, \"single\": true, \"balance\": 800.500," +
+    private static final String json = "{\"name\": \"Elon Musk\",\"age\":48, \"single\": true, \"balance\": 800.500," +
             " \"phoneNumbers\": [{\"type\": \"mobile\", \"number\": \"+79005004242\"}, {\"type\": \"home\", " +
             "\"number\": \"+79508888300\"}]}";
 
-    private static int SIZE = 1000_000;
+    private static final int SIZE = 1000_000;
 
     @Test
     public void performanceTheJsonTest() {

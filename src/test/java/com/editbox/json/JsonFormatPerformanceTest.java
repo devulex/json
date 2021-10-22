@@ -1,5 +1,7 @@
 package com.editbox.json;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import org.junit.Test;
 
@@ -19,7 +21,7 @@ public class JsonFormatPerformanceTest {
         for (int i = 0; i < SIZE; i++) {
             Json.format(object);
         }
-        System.out.println("Serialization duration " + (System.nanoTime() - start) / 1000_000d + "ms");
+        System.out.println("Json serialization duration " + (System.nanoTime() - start) / 1000_000d + "ms");
     }
 
     @Test
@@ -31,6 +33,18 @@ public class JsonFormatPerformanceTest {
         for (int i = 0; i < SIZE; i++) {
             gson.toJson(object);
         }
-        System.out.println("Serialization duration " + (System.nanoTime() - start) / 1000_000d + "ms");
+        System.out.println("Gson serialization duration " + (System.nanoTime() - start) / 1000_000d + "ms");
+    }
+
+    @Test
+    public void performanceJacksonTest() throws JsonProcessingException {
+        Entity object = JsonTest.createTestJsonEntity();
+        int SIZE = 1000_000;
+        long start = System.nanoTime();
+        ObjectMapper mapper = new ObjectMapper();
+        for (int i = 0; i < SIZE; i++) {
+            mapper.writeValueAsString(object);
+        }
+        System.out.println("Jackson serialization duration " + (System.nanoTime() - start) / 1000_000d + "ms");
     }
 }
