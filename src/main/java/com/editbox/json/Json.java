@@ -48,19 +48,19 @@ public class Json {
      * @param json      the string from which the object is to be deserialized
      * @param valueType the class of T
      * @return an object of type T from the string.
-     * @throws RuntimeException if json is not a valid representation for an object of type valueType
+     * @throws JsonParseException if json is not a valid representation for an object of type valueType
      */
     public static <T> T parse(String json, Class<T> valueType) {
         if (json == null) {
             return null;
         }
         if (valueType == null) {
-            throw new RuntimeException("Parameter valueType cannot be null.");
+            throw new JsonParseException("Parameter valueType cannot be null.");
         }
         try {
             return parse0(json, valueType, null, null);
         } catch (Exception e) {
-            throw new RuntimeException("Json parse exception.", e);
+            throw new JsonParseException("Json parse exception.", e);
         }
     }
 
@@ -171,7 +171,7 @@ public class Json {
                 builder.append("}");
             }
         } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
+            throw new JsonParseException(e);
         }
     }
 
@@ -291,7 +291,7 @@ public class Json {
         try {
             object = type.getConstructor().newInstance();
         } catch (NoSuchMethodException e) {
-            throw new RuntimeException("No-argument constructor of " + type.getName() + " not found.");
+            throw new JsonParseException("No-argument constructor of " + type.getName() + " not found.");
         }
         for (Field field : type.getDeclaredFields()) {
             if (field == null) {
@@ -566,13 +566,13 @@ public class Json {
             pos++;
         }
         if (state != 13) {
-            throw new RuntimeException("Unexpected end of JSON");
+            throw new JsonParseException("Unexpected end of JSON");
         }
         return isArray ? ParseResult.fromList(list) : ParseResult.fromMap(map);
     }
 
     private static void throwParseException(char c, int pos) {
-        throw new RuntimeException("Unexpected token " + c + " in JSON at position " + pos);
+        throw new JsonParseException("Unexpected token " + c + " in JSON at position " + pos);
     }
 
     private static boolean isWhitespace(char c) {
@@ -603,6 +603,25 @@ public class Json {
 
         static ParseResult fromList(List<String> list) {
             return new ParseResult(null, list);
+        }
+    }
+
+    public static class JsonParseException extends RuntimeException {
+
+        public JsonParseException() {
+            super();
+        }
+
+        public JsonParseException(String s) {
+            super(s);
+        }
+
+        public JsonParseException(String message, Throwable cause) {
+            super(message, cause);
+        }
+
+        public JsonParseException(Throwable cause) {
+            super(cause);
         }
     }
 }
