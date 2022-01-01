@@ -442,6 +442,9 @@ public class Json {
                             case '\\':
                                 value.append('\\');
                                 break;
+                            case '/':
+                                value.append('/');
+                                break;
                             case 'b':
                                 value.append('\b');
                                 break;
