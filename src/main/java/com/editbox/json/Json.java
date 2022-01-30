@@ -363,6 +363,10 @@ public class Json {
                         state = 2;
                         break;
                     }
+                    if (c == endChar) {
+                        state = 13;
+                        break;
+                    }
                     throwParseException(c, pos);
                 case 2:
                     if (isLiteralName(c)) {
