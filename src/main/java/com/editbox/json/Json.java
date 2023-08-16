@@ -391,6 +391,10 @@ public class Json {
                     if (isWhitespace(c)) {
                         break;
                     }
+                    if (c == endChar) {
+                        state = 13;
+                        break;
+                    }
                     if (c == '"') {
                         state = 5;
                     } else if (isDigit(c) || c == '-') {
@@ -404,7 +408,7 @@ public class Json {
                         value.append(c);
                         level = 0;
                         state = 8;
-                    } else if (json.substring(pos, pos + 4).equalsIgnoreCase("true")) {
+                    } else if (json.length() > pos + 4 && json.substring(pos, pos + 4).equalsIgnoreCase("true")) {
                         value.append("true");
                         if (isArray) {
                             list.add(value.toString());
@@ -413,7 +417,7 @@ public class Json {
                         }
                         pos += 3;
                         state = 12;
-                    } else if (json.substring(pos, pos + 5).equalsIgnoreCase("false")) {
+                    } else if (json.length() > pos + 5 && json.substring(pos, pos + 5).equalsIgnoreCase("false")) {
                         value.append("false");
                         if (isArray) {
                             list.add(value.toString());
@@ -422,7 +426,7 @@ public class Json {
                         }
                         pos += 4;
                         state = 12;
-                    } else if (json.substring(pos, pos + 4).equalsIgnoreCase("null")) {
+                    } else if (json.length() > pos + 4 && json.substring(pos, pos + 4).equalsIgnoreCase("null")) {
                         value.append("null");
                         if (isArray) {
                             list.add(value.toString());

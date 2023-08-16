@@ -92,4 +92,10 @@ public class JsonListTest {
         assertEquals("null", list.get(1));
         assertEquals("null", list.get(2));
     }
+
+    @Test
+    public void jsonToEmptyListTest() {
+        List<String> list = Json.jsonToList("[]");
+        assertEquals(0, list.size());
+    }
 }
